@@ -12,14 +12,44 @@ A robust, zero-hallucination RAG (Retrieval-Augmented Generation) system built f
 - **Asynchronous Token Streaming**: Real-time response generation for a smooth user experience.
 - **Full Containerization**: One-click deployment with Docker Compose.
 
-## 🏗 Architecture
+## 🏗 Architecture Diagram
 
-- **Backend**: FastAPI (Python 3.10)
-- **Frontend**: Streamlit
-- **Embeddings**: `all-MiniLM-L6-v2` (Sentence-Transformers)
-- **Vector Store**: FAISS
-- **Sparse Search**: BM25 (Rank-BM25)
-- **LLM SDK**: Google GenAI
+```mermaid
+graph TD
+    subgraph "Ingestion Pipeline"
+        A[PDF Document] --> B{Text or Image?}
+        B -- Text --> C[pdfplumber]
+        B -- Scanned --> D[Tesseract OCR]
+        C --> E[Recursive Character Splitting]
+        D --> E
+        E --> F[Chunking: 600 tkn]
+        F --> G[Embedding: all-MiniLM-L6-v2]
+        G --> H[(FAISS Vector DB)]
+        F --> I[(BM25 Sparse Index)]
+    end
+
+    subgraph "Retrieval Pipeline (RAG)"
+        J[User Query] --> K[HyDE Expansion]
+        K --> L{Hybrid Search}
+        L --> H
+        L --> I
+        H --> M[Top-K Semantic Chunks]
+        I --> N[Top-K Keyword Chunks]
+        M --> O[Reciprocal Rank Fusion - RRF]
+        N --> O
+        O --> P[Cross-Encoder Reranking]
+        P --> Q[Context Assembly]
+        Q --> R[[Gemma 3 27B]]
+        R --> S[Streaming Response]
+    end
+
+    subgraph "Infrastructure"
+        T[FastAPI Backend] --- U[(Docker Volumes)]
+        T --- V[Streamlit UI]
+    end
+```
+
+## 🏗 Technology Stack
 
 ## 🛠 Setup & Installation
 
