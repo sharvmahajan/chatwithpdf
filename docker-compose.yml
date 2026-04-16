@@ -1,0 +1,46 @@
+services:
+  backend:
+    build: 
+      context: .
+      target: backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - LOG_LEVEL=INFO
+    # Use Python to health-check — curl is not installed in python:3.10-slim.
+    # start_period gives the server time to load ML models before checks begin.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build: 
+      context: .
+      target: frontend
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      # In Docker, frontend must call the backend via the service name, not localhost.
+      - BACKEND_URL=http://backend:8000/api/v1
+    # Wait for backend container to start (service_started) rather than be healthy.
+    # This avoids the frontend being blocked if the healthcheck is briefly slow.
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
